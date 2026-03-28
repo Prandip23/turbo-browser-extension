@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Turbo Browser</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a0a0f;
+    --bg2: #111118;
+    --bg3: #1a1a24;
+    --border: rgba(0,255,255,0.13);
+    --c1: #00e5ff;
+    --c2: #7c3aed;
+    --ok: #10b981;
+    --warn: #f59e0b;
+    --err: #ef4444;
+    --text: #e2e8f0;
+    --muted: rgba(226,232,240,0.45);
+    --mono: 'JetBrains Mono', monospace;
+    --sans: 'Space Grotesk', sans-serif;
+  }
+
+  body {
+    width: 340px;
+    min-height: 480px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 13px;
+  }
+
+  /* HEADER */
+  .header {
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .brand-icon {
+    width: 22px; height: 22px;
+    background: linear-gradient(135deg, var(--c1), var(--c2));
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px;
+  }
+  .brand-name {
+    font-weight: 600;
+    font-size: 14px;
+    background: linear-gradient(90deg, var(--c1), var(--c2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .status-pill {
+    font-family: var(--mono);
+    font-size: 9px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    padding: 3px 8px;
+    border-radius: 20px;
+    background: rgba(16,185,129,0.15);
+    color: var(--ok);
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .pulse-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--ok);
+    animation: pulse 1.4s ease-in-out infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  /* URL BAR */
+  .url-strip {
+    padding: 8px 14px;
+    background: var(--bg3);
+    border-bottom: 1px solid var(--border);
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* TABS */
+  .tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg2);
+  }
+  .tab {
+    flex: 1;
+    padding: 8px 0;
+    text-align: center;
+    font-size: 11px;
+    font-family: var(--mono);
+    letter-spacing: 0.05em;
+    color: var(--muted);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.15s;
+  }
+  .tab:hover { color: var(--text); }
+  .tab.active { color: var(--c1); border-bottom-color: var(--c1); }
+
+  /* PANELS */
+  .panel { display: none; padding: 12px 14px; }
+  .panel.active { display: block; }
+
+  /* METRIC GRID */
+  .metric-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  .metric {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    padding: 10px 12px;
+  }
+  .metric-label {
+    font-size: 9px;
+    font-family: var(--mono);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 5px;
+  }
+  .metric-val {
+    font-size: 20px;
+    font-weight: 600;
+    font-family: var(--mono);
+    line-height: 1;
+  }
+  .metric-sub { font-size: 9px; color: var(--muted); margin-top: 3px; font-family: var(--mono); }
+  .cv-cyan { color: var(--c1); }
+  .cv-green { color: var(--ok); }
+  .cv-amber { color: var(--warn); }
+  .cv-purple { color: #a78bfa; }
+
+  /* QUEUE ALERT */
+  .queue-alert {
+    border-radius: 9px;
+    padding: 10px 12px;
+    margin-bottom: 10px;
+    display: none;
+  }
+  .queue-alert.detected {
+    display: block;
+    background: rgba(239,68,68,0.1);
+    border: 1px solid rgba(239,68,68,0.3);
+  }
+  .queue-alert.clear {
+    display: block;
+    background: rgba(16,185,129,0.08);
+    border: 1px solid rgba(16,185,129,0.2);
+  }
+  .qa-title { font-weight: 600; font-size: 11px; margin-bottom: 4px; }
+  .qa-msg { font-size: 11px; color: var(--muted); font-family: var(--mono); }
+
+  /* PERF BARS */
+  .perf-section { margin-bottom: 10px; }
+  .perf-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 5px;
+  }
+  .perf-label { font-size: 10px; font-family: var(--mono); color: var(--muted); width: 68px; flex-shrink: 0; }
+  .perf-track { flex: 1; height: 6px; background: var(--bg3); border-radius: 3px; overflow: hidden; }
+  .perf-fill { height: 100%; border-radius: 3px; transition: width 0.6s ease; }
+  .perf-val { font-size: 10px; font-family: var(--mono); color: var(--muted); width: 38px; text-align: right; }
+
+  /* LOG */
+  .log-box {
+    background: #050508;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-family: var(--mono);
+    font-size: 10px;
+    line-height: 1.8;
+    max-height: 280px;
+    overflow-y: auto;
+  }
+  .ll { display: flex; gap: 7px; }
+  .lt { color: rgba(0,229,255,0.3); flex-shrink: 0; }
+  .lk { color: var(--ok); }
+  .lw { color: var(--warn); }
+  .li { color: #67e8f9; }
+  .le { color: var(--err); }
+  .ld { color: var(--muted); }
+
+  /* SETTINGS */
+  .setting-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 9px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .setting-row:last-child { border-bottom: none; }
+  .sn { font-size: 12px; color: var(--text); }
+  .sd { font-size: 10px; color: var(--muted); margin-top: 2px; font-family: var(--mono); }
+  .toggle {
+    width: 34px; height: 18px;
+    background: var(--bg3);
+    border-radius: 9px;
+    border: 1px solid var(--border);
+    cursor: pointer;
+    position: relative;
+    transition: background 0.2s;
+    flex-shrink: 0;
+  }
+  .toggle.on { background: var(--ok); border-color: var(--ok); }
+  .toggle::after {
+    content: '';
+    position: absolute;
+    top: 2px; left: 2px;
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    background: #fff;
+    transition: left 0.18s;
+  }
+  .toggle.on::after { left: 18px; }
+
+  /* FOOTER */
+  .footer {
+    padding: 8px 14px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--bg2);
+  }
+  .footer-note { font-size: 9px; color: var(--muted); font-family: var(--mono); }
+  .clear-btn {
+    font-size: 10px;
+    font-family: var(--mono);
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    color: var(--muted);
+    padding: 3px 9px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .clear-btn:hover { color: var(--err); border-color: var(--err); }
+
+  ::-webkit-scrollbar { width: 3px; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="brand">
+    <div class="brand-icon">⚡</div>
+    <span class="brand-name">Turbo</span>
+  </div>
+  <div class="status-pill">
+    <div class="pulse-dot"></div>
+    ACTIVE
+  </div>
+</div>
+
+<div class="url-strip" id="url-strip">Loading page info…</div>
+
+<div class="tabs">
+  <div class="tab active" data-tab="stats">STATS</div>
+  <div class="tab" data-tab="perf">PERF</div>
+  <div class="tab" data-tab="log">LOG</div>
+  <div class="tab" data-tab="settings">SETTINGS</div>
+</div>
+
+<!-- STATS PANEL -->
+<div class="panel active" id="panel-stats">
+  <div class="metric-grid">
+    <div class="metric">
+      <div class="metric-label">Load time</div>
+      <div class="metric-val cv-cyan" id="s-load">—</div>
+      <div class="metric-sub" id="s-load-sub">Waiting</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Requests</div>
+      <div class="metric-val cv-green" id="s-req">0</div>
+      <div class="metric-sub" id="s-req-sub">intercepted</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Est. saved</div>
+      <div class="metric-val cv-purple" id="s-saved">0ms</div>
+      <div class="metric-sub">via optimizations</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Protocol</div>
+      <div class="metric-val cv-amber" id="s-proto" style="font-size:14px;">—</div>
+      <div class="metric-sub" id="s-proto-sub">detecting</div>
+    </div>
+  </div>
+
+  <div class="queue-alert" id="queue-alert">
+    <div class="qa-title" id="qa-title">Queue detected</div>
+    <div class="qa-msg" id="qa-msg">—</div>
+  </div>
+</div>
+
+<!-- PERF PANEL -->
+<div class="panel" id="panel-perf">
+  <div class="perf-section">
+    <div class="perf-row">
+      <span class="perf-label">DNS lookup</span>
+      <div class="perf-track"><div class="perf-fill" id="b-dns" style="width:0%; background:#a78bfa;"></div></div>
+      <span class="perf-val" id="t-dns">—</span>
+    </div>
+    <div class="perf-row">
+      <span class="perf-label">TCP connect</span>
+      <div class="perf-track"><div class="perf-fill" id="b-tcp" style="width:0%; background:#67e8f9;"></div></div>
+      <span class="perf-val" id="t-tcp">—</span>
+    </div>
+    <div class="perf-row">
+      <span class="perf-label">TLS handshake</span>
+      <div class="perf-track"><div class="perf-fill" id="b-tls" style="width:0%; background:#6ee7b7;"></div></div>
+      <span class="perf-val" id="t-tls">—</span>
+    </div>
+    <div class="perf-row">
+      <span class="perf-label">TTFB</span>
+      <div class="perf-track"><div class="perf-fill" id="b-ttfb" style="width:0%; background:#fcd34d;"></div></div>
+      <span class="perf-val" id="t-ttfb">—</span>
+    </div>
+    <div class="perf-row">
+      <span class="perf-label">DOM ready</span>
+      <div class="perf-track"><div class="perf-fill" id="b-dom" style="width:0%; background:#f9a8d4;"></div></div>
+      <span class="perf-val" id="t-dom">—</span>
+    </div>
+    <div class="perf-row">
+      <span class="perf-label">Total load</span>
+      <div class="perf-track"><div class="perf-fill" id="b-tot" style="width:0%; background:linear-gradient(90deg,#00e5ff,#7c3aed);"></div></div>
+      <span class="perf-val" id="t-tot">—</span>
+    </div>
+  </div>
+</div>
+
+<!-- LOG PANEL -->
+<div class="panel" id="panel-log">
+  <div class="log-box" id="log-box">
+    <div class="ll"><span class="lt">--:--:--</span><span class="li">Turbo extension loaded. Waiting for page activity…</span></div>
+  </div>
+</div>
+
+<!-- SETTINGS PANEL -->
+<div class="panel" id="panel-settings">
+  <div id="settings-container"></div>
+</div>
+
+<div class="footer">
+  <span class="footer-note" id="footer-note">Turbo v1.0 — ready</span>
+  <button class="clear-btn" id="clear-btn">Reset</button>
+</div>
+
+<script src="popup.js"></script>
+</body>
+</html>
