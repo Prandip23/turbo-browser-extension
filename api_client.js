@@ -1,12 +1,29 @@
+// ================================================================
 // Smart Page Summarizer — APIM Client
-// Calls Azure API Management → FastAPI → Azure OpenAI gpt-5.1
-// Replace with your own APIM endpoint and subscription key
-// You can find this in the Azure portal under your API Management instance
+// ================================================================
+// SETUP REQUIRED before using the AI tab:
+//
+// 1. Deploy the backend API first:
+//    https://github.com/Prandip23/smart-page-summarizer-api
+//
+// 2. After deployment, get your values from:
+//    Azure Portal -> API Management -> summarizer-apim -> Subscriptions
+//
+// 3. Replace the placeholders below with your actual values:
+// ================================================================
 
-const APIM_ENDPOINT = "YOUR_APIM_ENDPOINT_URL_HERE";
-const APIM_KEY = "YOUR_APIM_KEY_HERE";
+const APIM_ENDPOINT = "https://YOUR-APIM-NAME.azure-api.net/summarizer/summarize";
+const APIM_KEY = "YOUR-APIM-SUBSCRIPTION-KEY";
+
+// ================================================================
+// Do not edit below this line
+// ================================================================
 
 async function summarizePage(htmlContent, mode) {
+  if (APIM_KEY === "YOUR-APIM-SUBSCRIPTION-KEY") {
+    throw new Error("API not configured. See api_client.js setup instructions.");
+  }
+
   const response = await fetch(APIM_ENDPOINT, {
     method: "POST",
     headers: {
