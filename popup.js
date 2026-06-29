@@ -2,11 +2,12 @@
 // All event listeners attached via addEventListener (no inline onclick — CSP requirement)
 
 const settingsDefs = [
-  { id:'preconnect', name:'Preconnect injection',   desc:'Auto-add preconnect hints for all domains',       on:true },
-  { id:'dns',        name:'DNS prefetch',           desc:'Resolve hostnames before you click',              on:true },
-  { id:'queue',      name:'Queue detection',        desc:'Alert on waiting rooms & rate limits',            on:true },
-  { id:'notify',     name:'Desktop notifications', desc:'Notify when a queue is detected',                 on:true },
-  { id:'perf',       name:'Perf timing report',    desc:'Collect & display detailed load timings',         on:true },
+  { id:'preconnect',    name:'Preconnect injection',   desc:'Auto-add preconnect hints for all domains',    on:true },
+  { id:'dns',           name:'DNS prefetch',           desc:'Resolve hostnames before you click',           on:true },
+  { id:'queue',         name:'Queue detection',        desc:'Alert on waiting rooms & rate limits',         on:true },
+  { id:'notify',        name:'Desktop notifications',  desc:'Notify when a queue is detected',              on:true },
+  { id:'perf',          name:'Perf timing report',     desc:'Collect & display detailed load timings',      on:true },
+  { id:'ai_summarizer', name:'AI Summarizer',          desc:'Page summarization via Azure OpenAI',          on:true },
 ];
 
 let currentSettings = {};
@@ -34,6 +35,24 @@ document.querySelectorAll('.tab').forEach(tab => {
   tab.addEventListener('click', () => switchTab(tab.dataset.tab));
 });
 
+// ── AI TAB VISIBILITY ─────────────────────────────────────────────────────
+function applyAiToggle() {
+  chrome.storage.local.get('turbo_settings', (res) => {
+    const settings = res.turbo_settings || {};
+    const aiEnabled = settings['ai_summarizer'] !== false;
+    const aiTab = document.querySelector('.tab[data-tab="summarize"]');
+    if (aiTab) {
+      aiTab.style.display = aiEnabled ? '' : 'none';
+    }
+    if (!aiEnabled) {
+      const aiPanel = document.getElementById('panel-summarize');
+      if (aiPanel && aiPanel.classList.contains('active')) {
+        switchTab('stats');
+      }
+    }
+  });
+}
+
 // ── SETTINGS ─────────────────────────────────────────────────────────────
 function buildSettings() {
   chrome.storage.local.get('turbo_settings', (res) => {
@@ -57,6 +76,7 @@ function buildSettings() {
         this.classList.toggle('on');
         currentSettings[s.id] = this.classList.contains('on');
         chrome.storage.local.set({ turbo_settings: currentSettings });
+        applyAiToggle();
       });
       c.appendChild(row);
     });
@@ -90,7 +110,6 @@ function renderFullLog() {
 // ── PERF BARS ─────────────────────────────────────────────────────────────
 function renderPerf() {
   if (!perfData) {
-    // Try fetching from storage
     chrome.storage.local.get('turbo_perf', (res) => {
       if (res && res.turbo_perf) { perfData = res.turbo_perf; applyPerfBars(); }
     });
@@ -148,7 +167,7 @@ function updateStats(stats, url) {
   }
 
   document.getElementById('footer-note').textContent =
-    `Turbo v1.0 — ${stats.requests || 0} reqs monitored`;
+    `Turbo v1.1 — ${stats.requests || 0} reqs monitored`;
 }
 
 // ── CLEAR BUTTON ──────────────────────────────────────────────────────────
@@ -174,7 +193,6 @@ function refresh() {
     if (!res) return;
     updateStats(res.stats, res.url);
 
-    // Append any new log entries to log panel if it's visible
     const logPanel = document.getElementById('panel-log');
     if (logPanel.classList.contains('active')) {
       const box = document.getElementById('log-box');
@@ -198,4 +216,64 @@ function refresh() {
 // ── INIT ─────────────────────────────────────────────────────────────────
 buildSettings();
 refresh();
+applyAiToggle();
 setInterval(refresh, 1500);
+
+// ─── AI SUMMARIZER ───────────────────────────────────────────────────────
+
+let selectedMode = 'tldr';
+
+document.querySelectorAll('.mode-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    selectedMode = btn.dataset.mode;
+  });
+});
+
+document.getElementById('summarize-btn').addEventListener('click', async () => {
+  const btn = document.getElementById('summarize-btn');
+  const status = document.getElementById('summarize-status');
+  const result = document.getElementById('summarize-result');
+  const meta = document.getElementById('summarize-meta');
+
+  btn.disabled = true;
+  btn.textContent = '⏳ SUMMARIZING...';
+  status.textContent = 'Fetching page content...';
+  result.classList.remove('visible');
+  result.innerHTML = '';
+  meta.textContent = '';
+
+  try {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+
+    const [{ result: html }] = await chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      func: () => document.documentElement.innerHTML
+    });
+
+    status.textContent = `Calling Azure OpenAI · ${selectedMode.toUpperCase()} mode...`;
+
+    const data = await summarizePage(html, selectedMode);
+
+    result.classList.add('visible');
+
+    if (Array.isArray(data.summary)) {
+      result.innerHTML = data.summary
+        .map((item, i) => `<div class="summary-item"><span class="summary-num">${i + 1}.</span>${item}</div>`)
+        .join('');
+    } else {
+      result.textContent = data.summary;
+    }
+
+    meta.textContent = `${data.word_count} words · ~${data.reading_time_minutes} min read`;
+    status.textContent = '✅ Done';
+
+  } catch (err) {
+    status.textContent = `❌ ${err.message}`;
+    result.classList.remove('visible');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '⚡ SUMMARIZE THIS PAGE';
+  }
+});

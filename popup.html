@@ -102,18 +102,20 @@
     display: flex;
     border-bottom: 1px solid var(--border);
     background: var(--bg2);
+    overflow-x: auto;
   }
   .tab {
     flex: 1;
-    padding: 8px 0;
+    padding: 8px 4px;
     text-align: center;
-    font-size: 11px;
+    font-size: 10px;
     font-family: var(--mono);
-    letter-spacing: 0.05em;
+    letter-spacing: 0.04em;
     color: var(--muted);
     cursor: pointer;
     border-bottom: 2px solid transparent;
     transition: all 0.15s;
+    white-space: nowrap;
   }
   .tab:hover { color: var(--text); }
   .tab.active { color: var(--c1); border-bottom-color: var(--c1); }
@@ -241,6 +243,60 @@
   }
   .toggle.on::after { left: 18px; }
 
+  /* AI SUMMARIZER */
+  .mode-btn {
+    font-size: 9px;
+    font-family: var(--mono);
+    letter-spacing: 0.08em;
+    padding: 4px 10px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    background: var(--bg3);
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .mode-btn:hover { color: var(--text); border-color: rgba(0,229,255,0.3); }
+  .mode-btn.active {
+    background: rgba(0,229,255,0.12);
+    border-color: var(--c1);
+    color: var(--c1);
+  }
+  .summarize-btn {
+    width: 100%;
+    padding: 10px;
+    background: linear-gradient(135deg, var(--c1), var(--c2));
+    border: none;
+    border-radius: 8px;
+    color: #000;
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    cursor: pointer;
+    margin-bottom: 10px;
+    transition: opacity 0.15s;
+  }
+  .summarize-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .summarize-btn:hover:not(:disabled) { opacity: 0.9; }
+  .summary-result {
+    background: #050508;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px;
+    font-size: 11px;
+    line-height: 1.8;
+    color: var(--text);
+    min-height: 80px;
+    display: none;
+    font-family: var(--mono);
+    max-height: 220px;
+    overflow-y: auto;
+  }
+  .summary-result.visible { display: block; }
+  .summary-item { margin-bottom: 6px; }
+  .summary-num { color: var(--c1); margin-right: 4px; }
+
   /* FOOTER */
   .footer {
     padding: 8px 14px;
@@ -287,7 +343,8 @@
   <div class="tab active" data-tab="stats">STATS</div>
   <div class="tab" data-tab="perf">PERF</div>
   <div class="tab" data-tab="log">LOG</div>
-  <div class="tab" data-tab="settings">SETTINGS</div>
+  <div class="tab" data-tab="summarize">AI ✦</div>
+  <div class="tab" data-tab="settings">CONFIG</div>
 </div>
 
 <!-- STATS PANEL -->
@@ -364,16 +421,49 @@
   </div>
 </div>
 
+<!-- AI SUMMARIZER PANEL -->
+<div class="panel" id="panel-summarize">
+
+  <div style="margin-bottom:10px;">
+    <div style="font-size:9px; font-family:var(--mono); color:var(--muted); margin-bottom:7px; letter-spacing:0.1em; text-transform:uppercase;">Summary Mode</div>
+    <div style="display:flex; gap:5px; flex-wrap:wrap;">
+      <button class="mode-btn active" data-mode="tldr">TLDR</button>
+      <button class="mode-btn" data-mode="bullets">BULLETS</button>
+      <button class="mode-btn" data-mode="eli5">ELI5</button>
+      <button class="mode-btn" data-mode="facts">FACTS</button>
+      <button class="mode-btn" data-mode="bias">BIAS</button>
+    </div>
+  </div>
+
+  <button class="summarize-btn" id="summarize-btn">⚡ SUMMARIZE THIS PAGE</button>
+
+  <div id="summarize-status" style="
+    font-size:10px; font-family:var(--mono);
+    color:var(--muted); text-align:center;
+    margin-bottom:8px; min-height:14px;
+  "></div>
+
+  <div class="summary-result" id="summarize-result"></div>
+
+  <div id="summarize-meta" style="
+    font-size:9px; font-family:var(--mono);
+    color:var(--muted); margin-top:6px;
+    text-align:right;
+  "></div>
+
+</div>
+
 <!-- SETTINGS PANEL -->
 <div class="panel" id="panel-settings">
   <div id="settings-container"></div>
 </div>
 
 <div class="footer">
-  <span class="footer-note" id="footer-note">Turbo v1.0 — ready</span>
+  <span class="footer-note" id="footer-note">Turbo v1.1 — ready</span>
   <button class="clear-btn" id="clear-btn">Reset</button>
 </div>
 
+<script src="api_client.js"></script>
 <script src="popup.js"></script>
 </body>
 </html>
