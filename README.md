@@ -43,14 +43,18 @@ The toolbar popup has five tabs:
 **Step 1 — Download**
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/turbo-browser-extension.git
+git clone https://github.com/Prandip23/turbo-browser-extension.git
 ```
 
 Or click **Code → Download ZIP** on GitHub and unzip it.
 
 **Step 2 — (Optional) Configure the AI Summarizer**
 
-If you want the **AI ✦** tab to work, open [api_client.js](api_client.js) and replace the placeholders with your own Azure API Management endpoint and subscription key:
+The AI summarizer requires a running backend. The full backend setup — FastAPI on Azure App Service, Azure API Management config, Azure OpenAI deployment, and environment variables — is documented in the companion repo:
+
+> **[smart-page-summarizer-api](https://github.com/Prandip23/smart-page-summarizer-api)** — the Azure FastAPI backend that powers the AI ✦ tab.
+
+Once you have the backend deployed, open [api_client.js](api_client.js) and fill in your APIM endpoint and subscription key:
 
 ```js
 const APIM_ENDPOINT = "https://<your-apim>.azure-api.net/summarize";
@@ -150,8 +154,10 @@ When you click **⚡ SUMMARIZE THIS PAGE**:
 
 1. `chrome.scripting.executeScript` extracts the page's full HTML from the active tab.
 2. `popup.js` posts `{ html_content, mode }` to your APIM endpoint via `api_client.js`.
-3. APIM forwards to a FastAPI service that calls Azure OpenAI (e.g. `gpt-5.1`).
+3. APIM forwards to the **[smart-page-summarizer-api](https://github.com/Prandip23/smart-page-summarizer-api)** — a FastAPI service on Azure App Service that cleans the HTML and calls Azure OpenAI (`gpt-5.1`).
 4. The response (`summary`, `word_count`, `reading_time_minutes`) is rendered in the AI panel.
+
+Full backend setup, API reference, Azure deployment instructions, and environment variable config are in the **[smart-page-summarizer-api repo](https://github.com/Prandip23/smart-page-summarizer-api)**.
 
 Available modes:
 
@@ -211,7 +217,7 @@ The summarizer is **opt-in** — disable it in **CONFIG** and the AI tab is hidd
 Pull requests are welcome. To contribute:
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/turbo-browser-extension.git
+git clone https://github.com/Prandip23/turbo-browser-extension.git
 cd turbo-browser-extension
 # Make your changes
 # Load unpacked in Brave/Chrome to test
@@ -225,6 +231,15 @@ Ideas for future improvements:
 - [ ] Support for Firefox (Manifest V2 port)
 - [ ] Move APIM key to a CONFIG-tab input instead of source
 - [ ] Cache summaries per-URL to avoid redundant API calls
+
+---
+
+## Related Repositories
+
+| Repo | Description |
+|------|-------------|
+| **[turbo-browser-extension](https://github.com/Prandip23/turbo-browser-extension)** | This repo — the Brave/Chrome extension |
+| **[smart-page-summarizer-api](https://github.com/Prandip23/smart-page-summarizer-api)** | Azure FastAPI backend powering the AI ✦ tab (APIM + Azure OpenAI gpt-5.1) |
 
 ---
 
